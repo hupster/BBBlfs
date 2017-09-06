@@ -20,7 +20,6 @@ Makefile
 bin/.dirstamp
 
 bintest
-bin/usb_flasher
 obj
 *.xz
 .DS_STORE
