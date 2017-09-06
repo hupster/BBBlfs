@@ -7,8 +7,23 @@ Beagle Bone Black Linux Flash System
 This project provides a way to flash a BeagleBone Black via USB from a Linux machine. The project was developed during Google Summer of Code '13.
 
 
-Build
+Install
 ----------
+1) Install Ubuntu 14.04.1 LTS: http://old-releases.ubuntu.com/releases/14.04.1/ubuntu-14.04.1-desktop-i386.iso
+Newer versions of Ubuntu or Debian won't work.
+
+2) Optionally remove the desktop environment:
+```
+sudo apt-get install tasksel
+sudo tasksel remove ubuntu-desktop
+```
+Edit /etc/default/grub:
+```
+GRUB_CMDLINE_LINUX="text"
+GRUB_TERMINAL=console
+```
+
+3) The 32-bit version was added as binary. To build for another architecture:
 ```
 sudo apt-get install libusb-1.0-0-dev automake
 ./autogen.sh
@@ -16,23 +31,15 @@ sudo apt-get install libusb-1.0-0-dev automake
 make
 ```
 
-
 Usage
 -----------
-Press the S2 button on the BeagleBone Black and apply power to the board. The board should start now into USB boot mode.
+1) Connect the board to the host PC using the micro-USB cable. If the BeagleBone Black is not empty, the S2 button needs to be pressed to make the board start into USB boot mode.
 
-Connect the board to the host PC. The kernel should now identify your board as an RNDIS interface. Be sure you do not have any BOOTP servers on your network.
-
-Go to bin/ and execute ```flash_script.sh``` It needs the flashing image as argument to be provided.
-
-For now only .xz compressed images are supported.
+2) Enter the bin/ directory and execute ```flash_script.sh``` It needs the flashing image as argument to be provided.
 
 ```sudo ./flash_script.sh  [ debian | ubuntu | image.xz ]```
 
 * debian and ubuntu will use tarball from armhf.com website
-
-If there are bugs please feel free to contact me.
-
 
 
 How to build the binary blobs
