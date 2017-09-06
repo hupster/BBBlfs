@@ -61,6 +61,8 @@ int main(int UNUSED argc, const char UNUSED * argv[]) {
 	libusb_device_handle *dev_handle = NULL;	//structure representing handler on USB device
 	libusb_context *ctx = NULL;	//structure representing libusb session
 
+	printf("(1/5) Sending U-boot SPL ...\n");
+	
 	r = libusb_init(&ctx);	//Inirialize the libusb
 	if (r < 0) {			//handling faliure
 		printf("Init error!\n");
@@ -284,7 +286,7 @@ int main(int UNUSED argc, const char UNUSED * argv[]) {
 
 	r = libusb_claim_interface(dev_handle, 1);
 
-	printf("SPL has started!\n\n");
+	printf("(2/5) Sending U-boot ...\n");
 
 	memset(buffer, 0, 450);
 	memset(data, 0, 1000);
@@ -437,7 +439,7 @@ int main(int UNUSED argc, const char UNUSED * argv[]) {
 
 	r = libusb_claim_interface(dev_handle, 1);
 
-	printf("U-Boot has started! Sending now the FIT image!\n\n");
+	printf("(3/5) Sending FIT image ...\n");
 
 	memset(data, 0, fullSize);
 	make_rndis(rndis, etherSize + arpSize);

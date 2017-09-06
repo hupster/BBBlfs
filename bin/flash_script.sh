@@ -53,6 +53,12 @@ else
 	input=$1
 fi
 
+if ( ! is_file_exists usb_flasher)
+then
+	echo "Please make the project then execute the script!"
+	exit 1
+fi
+
 if [ ! \( "$input" = "debian" -o "$input" = "ubuntu" \) ]
 then
 
@@ -63,7 +69,7 @@ then
 		exit 1
 	fi
 
-	echo "We are flashing this all mighty BeagleBone Black with the image from $input!"
+	echo "Using image: $input"
 
 fi
 echo "Please do not insert any USB Sticks"\
@@ -75,46 +81,32 @@ echo
 if [[ $REPLY =~ ^[Yy]$ ]]
 then
 	before=($(ls /dev | grep "sd[a-z]$"))
-
-	if ( ! is_file_exists usb_flasher)
-	then
-		echo "Please make the project then execute the script!"
-		exit 1
-	fi
-
-	echo
-	echo "Putting the BeagleBone Black into flashing mode!"
-	echo
-
+	
 	sudo ./usb_flasher
 	rc=$?
 	if [[ $rc != 0 ]];
 	then
-		echo "The BeagleBone Black cannot be put in USB Flasing mode. Send "\
-				"logs to vvu@vdev.ro together with the serial output from the"\
-				"BeagleBone Black."
+		echo "Error putting the BeagleBone Black in USB Flasing mode."
 		exit $rc
 	fi
 
-	echo -n "Waiting for the BeagleBone Black to be mounted"
-	for i in {1..12}
+	echo -n "(4/5) Waiting for the BeagleBone Black to be mounted"
+	for i in {1..20}
 	do
 		echo -n "."
 		sleep 1
 	done
-	echo 
+	echo
 
 	after=($(ls /dev | grep "sd[a-z]$"))
 	bbb=($(diff after[@] before[@]))
-	
+
 	if [ -z "$bbb" ];
 	then
-		echo "The BeagleBone Black cannot be detected. Either it has not been"\
-				" mounted or the g_mass_storage module failed loading. "\
-				"Please send the serial log over to vvu@vdev.ro for debugging."
+		echo "Error detecting the BeagleBone Black as mass storage device."
 		exit 1
 	fi
-	
+
 	if [ ${#bbb[@]} != "1" ]
 	then
 		echo "You inserted an USB stick or mounted an external drive. Please "\
@@ -122,31 +114,36 @@ then
 		exit 1
 	fi
 
-	read -p "Are you sure the BeagleBone Black is mounted at /dev/$bbb?[yY]" -n 1 -r
-	echo
+	parts=($(ls /dev | grep "$bbb[1,2]"))
+	for index in ${!parts[*]}
+	do
+		sudo umount /dev/${parts[$index]} > /dev/null 2>&1
+	done
 
-	if [[ $REPLY =~ ^[Yy]$ ]];
-		parts=($(ls /dev | grep "$bbb[1,2]"))
-		then
-			for index in ${!parts[*]}
-			do
-				sudo umount /dev/${parts[$index]}
-		done
-		echo "Flashing now, be patient. It will take ~5 minutes!"
-		echo
-		if [ \( "$input" = "debian" -o "$input" = "ubuntu" \) ]
-		then
-			sudo ./bbb-armhf.sh $bbb $input
-		else
-			xzcat $input | sudo dd of=/dev/$bbb bs=1M
-			echo
-			echo "Resizing partitons now, just as a saefty measure if you flash 2GB image on 4GB board!"
-			echo -e "d\n2\nn\np\n2\n\n\nw" | sudo fdisk /dev/$bbb > /dev/null
-		fi
-		sudo e2fsck -f /dev/${bbb}2
-		sudo resize2fs /dev/${bbb}2
-		echo
-        echo "Please remove power from your board and plug it again."\
-				"You will boot in the new OS!"
+	echo "(5/5) Flashing image ..."
+
+	if [ \( "$input" = "debian" -o "$input" = "ubuntu" \) ]
+	then
+		sudo ./bbb-armhf.sh $bbb $input
+	else
+		case ${input} in
+			*.lzo )
+			# handle lzo format
+			lzop -dcf ${input} | sudo dd of=/dev/${bbb} bs=1M
+			;;
+			*.xz )
+			# handle xz format
+			xzcat ${input} | sudo dd of=/dev/${bbb} bs=1M
+			;;
+			* )
+			# handle gz format
+			gunzip -c ${input} | sudo dd of=/dev/${bbb} bs=1M
+			;;
+		esac
 	fi
+
+	sync
+
+	echo "Done!"
+	echo
 fi
